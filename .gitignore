@@ -1,0 +1,4 @@
+.ruff_cache
+celerybeat-schedule.db
+venv
+migrations/versions
