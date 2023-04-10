@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from utils.database import get_async_session
-from src.authv2.models import Item
+from src.items.models import Item
 
 
 async def get_items_model(id:int = None,session:AsyncSession = Depends(get_async_session)):

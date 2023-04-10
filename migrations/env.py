@@ -8,6 +8,12 @@ import sys
 sys.path.append(os.path.join(sys.path[0],'src'))
 from config import DB_NAME, DB_PORT, DB_USER, DB_PASSWORD, DB_HOST
 from src.authv2.models import Base as auth_base
+from src.items.models import Base as item_base
+from src.cart.models import Base as cart_base
+from migrations.relationships import Base as relations_base
+
+
+
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -28,7 +34,11 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = [auth_base.metadata]
+target_metadata = [auth_base.metadata,
+                   # item_base.metadata,
+                   # cart_base.metadata,
+                   # relations_base.metadata]
+]
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

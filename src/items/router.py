@@ -5,18 +5,24 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.authv2.schemas import UserRead
 from utils.producer import producer
-from utils.redis import get_async_redis
-from src.authv2.auth import get_current_user, get_current_user_or_pass
-from src.items.manager import get_items_model
-from src.authv2.manager import get_user_model
-from src.items.schemas import Item as ItemSchema, ItemCreate, LikedBy
+from utils.redis import get_async_redis, add_last_search
 from utils.database import get_async_session
-from src.authv2.models import Item, User, Category
+
+from src.authv2.auth import get_current_user, get_current_user_or_pass
+from src.authv2.manager import get_user_model
+from src.authv2.models import User
+from src.authv2.schemas import UserRead
+
+from src.items.schemas import Item as ItemSchema, ItemCreate, LikedBy
+from src.items.models import Item,Category
+from src.items.manager import get_items_model
+
+# from src.recommendations.rec import RecWeigths, recsInit
+
+
 from datetime import datetime,timedelta
 from config import KAFKA_TOPIC, KAFKA_TOPIC_RECOMMENDATIONS
-from src.recommendations.rec import RecWeigths, recsInit
 
 router = APIRouter(
     tags=['items'],
@@ -74,8 +80,8 @@ async def like(item_id:int,
 
                user:User = Depends(get_user_model),
                session:AsyncSession = Depends(get_async_session)):
-    recs = RecWeigths(redis,user)
-    await recs.init()
+    # recs = RecWeigths(redis,user)
+    # await recs.init()
     item = await get_items_model(id = item_id,session = session)
     if user not  in item.liked_by:
         item.liked_by.append(user)
@@ -96,14 +102,14 @@ async def remove_like(item_id:int,
                redis:Redis = Depends(get_async_redis),
                user:User = Depends(get_user_model),
                session:AsyncSession = Depends(get_async_session)):
-    recs = RecWeigths(redis,user)
-    await recs.init()
+    # recs = RecWeigths(redis,user)
+    # await recs.init()
     item = await get_items_model(id = item_id,session = session)
     if user   in item.liked_by:
         item.liked_by.remove(user)
         await session.commit()
         # await recs.remove(type = 'likes',category=item.category[0].name,name=item.name)
-        await recs.save()
+        # await recs.save()
         return {'response':200}
     return {'response':400,'reason':'unliked'}
 
@@ -123,21 +129,22 @@ async def like(item_id: int,
 
 @router.post('/search',response_model=List[ItemSchema])
 async def search(search_key: str,
-                 # item:Item = Depends(),
-                 user_data: User = Depends(get_current_user),
-                 session: AsyncSession = Depends(get_async_session), KAFKA_TOPIC_RECOMMENDATIONS=None):
+                 redis:Redis = Depends(get_async_redis),
+                 user_data: UserRead = Depends(get_current_user_or_pass),
+                 session: AsyncSession = Depends(get_async_session)):
     user_id = user_data.id
     items_query = select(Item).where(or_(Item.name.contains(search_key) , Item.brand.contains(search_key)) )
     items = (await session.execute(items_query)).scalars().fetchall()
     # send data to search recommendations (user_id,name,brand)
+    if user_id.id != -1:
+        #send data to item  recommendations (user_id,tags)
+        await producer.send(topic=KAFKA_TOPIC_RECOMMENDATIONS,value={
+            "user_id":user_id,
+            "tags":[search_key],
+            'type':'search'
 
-    #send data to item  recommendations (user_id,tags)
-    await producer.send(topic=KAFKA_TOPIC_RECOMMENDATIONS,value={
-        "user_id":user_id,
-        "tags":[search_key],
-        'type':'search'
-
-    })
-    await producer.flush()
-
+        })
+        await producer.flush()
+        await add_last_search(search_key,redis,user_id)
     return items
+

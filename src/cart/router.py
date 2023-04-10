@@ -5,17 +5,21 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
+
+from config import KAFKA_TOPIC_RECOMMENDATIONS
 from utils.database import get_async_session
 from src.authv2.auth import get_current_user, get_user_model
-from src.authv2.models import Item , User,Order
+from src.authv2.models import  User
 from src.authv2.schemas import UserRead
 from src.cart.cart import get_items,cartInit
+from src.cart.models import Order
+from utils.producer import producer
 from utils.redis import get_async_redis
-from src.cart.schemas.item import Item as ItemSchema, DeleteItem
+from src.cart.schemas.item import Item as ItemSchema, DeleteItem, Item
 from src.cart.schemas.order import Order as OrderSchema
 from src.cart.schemas.user import  UserOrdersItems
 from src.cart.schemas.cart import Cart as CartSchema
-from src.recommendations.rec import recsInit
+# from src.recommendations.rec import recsInit
 
 router = APIRouter(
     prefix = "/cart",
@@ -74,7 +78,7 @@ async def order(
                 session:AsyncSession = Depends(get_async_session),
         user_data:UserRead = Depends(get_current_user)):
     cart = await cartInit(redis, user_data)
-    recs = await  recsInit(redis,user)
+    # recs = await  recsInit(redis,user)
     cart_data = await cart.getItems()
     if not cart_data:
         raise HTTPException(status_code=403,detail="empty cart")
@@ -91,9 +95,16 @@ async def order(
         item.change_item = datetime.datetime.utcnow()
         order.items.append(item)
     user.orders.append(order)
-    await recs.add(type='purchases', category=item.category[0].name, brand=item.brand, item_name=item.name)
+    # await recs.add(type='purchases', category=item.category[0].name, brand=item.brand, item_name=item.name)
     await session.commit()
     # return JSONResponse(order_data.dict(),status_code=200)
+    await producer.send(topic=KAFKA_TOPIC_RECOMMENDATIONS, value={
+        "user_id": user.id,
+        "tags": (item.brand + ' ' + item.name).split(' '),
+        'type': 'purchases',
+        'category': item.category[0].name
+
+    })
 
     return order
 
