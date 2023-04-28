@@ -1,16 +1,13 @@
 import asyncio
 import json
-import os
 import time
 from datetime import datetime
-from typing import List
 
 from config import KAFKA_TOPIC, KAFKA_CONSUMER_GROUP, KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC_DELIVERY
 from src.delivery.models import Delivery, DeliveryStatus
-from src.delivery.schemas import  DeliveryCreateSchema
 from aiokafka import AIOKafkaConsumer
 
-from src.delivery.utils import make_random_track_id
+from src.delivery.utils import  make_unique_track_id
 from utils.database import async_session_maker
 
 loop = asyncio.get_event_loop()
@@ -23,8 +20,9 @@ async def consume():
 
         async for msg in consumer:
             async with async_session_maker() as session:
+                start = time.time()
                 delivery_data = json.loads(msg.value)
-                track_id = make_random_track_id(9)
+                track_id = await make_unique_track_id(9,session)
                 delivery = Delivery(**delivery_data)
                 delivery.track_id = track_id
 
@@ -33,7 +31,8 @@ async def consume():
                 session.add(delivery)
                 session.add(delivery_status)
                 await session.commit()
-            print(
+                end = time.time()
+            print(end - start,
                 "consumed: ",
                 msg.topic,
                 msg.partition,
@@ -42,7 +41,6 @@ async def consume():
                 msg.value,
                 msg.timestamp,
             )
-            # time.sleep(5)
 
     finally:
         await consumer.stop()
