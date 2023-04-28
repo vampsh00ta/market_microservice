@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.delivery.models import Delivery
 
 #penis
+def slatt():
+    pass
 async def make_unique_track_id(n:int,session:AsyncSession):
     range_start = 10 ** (n - 1)
     range_end = (10 ** n) - 1
