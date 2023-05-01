@@ -1,6 +1,7 @@
 import datetime
 
 from fastapi import APIRouter, Depends
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,5 +61,8 @@ async def update_delivery(delivery_data:UpdateDeliveryStatusSchema,session:Async
     session.add(status)
     await session.commit()
     return 200
-
-
+@router.get("/")
+async def test():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url='http://127.0.0.1:8000/cart/userInfo',headers={'accept': 'application/json'})
+        return response.json()
