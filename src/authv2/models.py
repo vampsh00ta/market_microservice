@@ -4,8 +4,7 @@ from datetime import datetime,timedelta
 from sqlalchemy import MetaData, Table, Column, Integer, String, TIMESTAMP, ForeignKey, Boolean,DateTime
 from sqlalchemy.orm import DeclarativeBase, relationship
 
-class Base(DeclarativeBase):
-    metadata = MetaData()
+
 
 
 from migrations.relationships import user_item_recommendation, user_item, Base
@@ -22,7 +21,7 @@ class User(Base):
     registered_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP,default=datetime.utcnow)
     orders = relationship("Order", backref="customers.orders",lazy="joined")
-    recommendation_items = relationship("Item", backref="recommendation_items",lazy="selectin", secondary=user_item_recommendation)
+    recommendation_items = relationship("Item", backref="customers.recommendation_items",lazy="selectin", secondary=user_item_recommendation)
 
     hashed_password = Column(String(length=1024), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)

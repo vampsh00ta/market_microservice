@@ -12,4 +12,4 @@ class Order(Base):
     id = Column(Integer,primary_key=True)
     date = Column(DateTime,default=datetime.utcnow())
     user_id  = Column(Integer, ForeignKey('customers.id'),nullable=True)
-    items = relationship("Item", backref="order_items",lazy="selectin",secondary=item_order)
+    items = relationship("Item", backref="orders.items",lazy="selectin",secondary=item_order)

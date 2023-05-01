@@ -1,3 +1,6 @@
+import datetime
+from datetime import time
+
 from fastapi import APIRouter, Depends,Response
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.requests import Request
@@ -19,8 +22,8 @@ async def login(
         user_data:OAuth2PasswordRequestForm = Depends(),
         service:AuthService = Depends()
 ):
-
-    return await service.authenticate_user(user_data.username,user_data.password,response)
+    start =  datetime.datetime.now()
+    return await service.authenticate_user(user_data.username,user_data.password,response,start)
 
 @router.get('/get',response_model=UserRead)
 async def get_user(user:UserRead = Depends(get_current_user)):

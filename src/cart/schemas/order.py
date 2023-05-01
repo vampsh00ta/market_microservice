@@ -8,6 +8,13 @@ from typing import List
 class MakeOrder(BaseModel):
     email:str = 'test'
     street:str = 'test'
+class MakeOrder(BaseModel):
+    receiver_name:str = 'test'
+    telephone_number: str = 'test'
+    street:str = 'test'
+    city:str = 'test'
+    class Config:
+        orm_mode = True
 
 
 

@@ -3,7 +3,6 @@ from datetime import datetime,timedelta
 
 from sqlalchemy import MetaData, Table, Column, Integer, String, TIMESTAMP, ForeignKey, Boolean,DateTime
 from sqlalchemy.orm import DeclarativeBase, relationship
-# from src.authv2.models import Base
 class Base(DeclarativeBase):
     metadata = MetaData()
 # class Base(DeclarativeBase):
