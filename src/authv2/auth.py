@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from fastapi import HTTPException,Response
 from fastapi import Depends
-from passlib.hash import bcrypt
+from passlib.hash import scrypt,bcrypt
 from sqlalchemy import  select
 from sqlalchemy.ext.asyncio import AsyncSession
 import jwt
@@ -68,13 +68,15 @@ class AuthService:
         await self.session.commit()
         return self.create_token(user,response)
 
-    async def authenticate_user(self,username:str,password:str,response:Response)->Token:
+    async def authenticate_user(self,username:str,password:str,response:Response,start)->Token:
         query = select(User).where(User.username == username)
         user = (await self.session.execute(query)).scalars().first()
+
+
         exception = HTTPException(
             status_code=401,
             detail='Couldt validate data',
-            headers={'Authoriza tion': 'Bearer'}
+            headers={'Authorization': 'Bearer'}
         )
         if not user:
             raise exception
@@ -83,10 +85,13 @@ class AuthService:
         return self.create_token(user,response)
     @classmethod
     def verify_password(cls,raw_password:str,hash_password:str):
+        sc = scrypt.verify(raw_password,hash_password)
+        if sc:
+            return sc
         return bcrypt.verify(raw_password,hash_password)
     @classmethod
     def hash_password(cls,password:str)->str:
-        return bcrypt.hash(password)
+        return scrypt.hash(password)
     @classmethod
     def validate(cls,request:Request)->UserRead:
         access_token = request.cookies.get('access_token')
