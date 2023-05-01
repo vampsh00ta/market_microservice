@@ -1,7 +1,7 @@
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Optional
 
 from aioredis import Redis
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Form
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,30 +28,36 @@ router = APIRouter(
     tags=['items'],
     prefix="/items",
 )
-
-@router.get('/{id}',response_model=Union[List[ItemSchema],ItemSchema,Dict])
-async def get_items(id:int = None,
-                    redis:Redis = Depends(get_async_redis),
+@router.get('/{id}',response_model=Union[ItemSchema,Dict])
+async def get_items(id:int,
                     user:UserRead = Depends(get_current_user_or_pass),
                     session:AsyncSession = Depends(get_async_session)):
-    if id:
-        items_query = select(Item).where(Item.id == id)
-        item = result = (await session.execute(items_query)).scalar()
-        if result and user.id !=-1:
-            await producer.send(topic=KAFKA_TOPIC_RECOMMENDATIONS, value={
-                "user_id": user.id,
-                "tags": (item.brand + ' ' + item.name).split(' '),
-                'type': 'clicks',
-                'category': item.category[0].name
 
-            })
+
+    item_query = select(Item).where(Item.id == id)
+    item = (await session.execute(item_query)).scalar()
+    if item and user.id != -1:
+        await producer.send(topic=KAFKA_TOPIC_RECOMMENDATIONS, value={
+            "user_id": user.id,
+            "tags": (item.brand + ' ' + item.name).split(' '),
+            'type': 'clicks',
+            'category': item.category[0].name
+
+        })
         # await recs.add(type='clicks', category=result.category[0].name, brand=result.brand, item_name=result.name)
-    else:
-        items_query = select(Item)
-        result = (await session.execute(items_query)).scalars().all()
-    if not result:
+    if not item:
         return {"response":"empty"}
-    return result
+    return item
+
+@router.get('/',response_model=Union[List[ItemSchema],Dict])
+async def get_items(
+                    session:AsyncSession = Depends(get_async_session)):
+    items_query = select(Item)
+    items = (await session.execute(items_query)).scalars().all()
+
+    if not items:
+        return {"response":"empty"}
+    return items
 
 @router.post('/',response_model=Union[ItemSchema,Dict])
 async def create_item(item_data: ItemCreate,

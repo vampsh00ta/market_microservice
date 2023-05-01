@@ -18,16 +18,16 @@ class Item(Base):
     brand = Column(String,nullable=True)
     image = Column(String,nullable=True)
     size = Column(String,nullable=False)
-    recommendation_users = relationship("User", backref="recommendation_users",lazy="selectin", secondary=user_item_recommendation)
+    recommendation_users = relationship("User", backref="items.recommendation_users",lazy="selectin", secondary=user_item_recommendation)
     used = Column(Boolean,nullable=False)
-    category =  relationship("Category", backref="category_item", lazy="selectin",secondary=item_category)
-    orders = relationship("Order", backref="item_orders",lazy="selectin", secondary=item_order)
+    category =  relationship("Category", backref="items.category", lazy="selectin",secondary=item_category)
+    orders = relationship("Order", backref="items.orders",lazy="selectin", secondary=item_order)
     owner_id = Column(Integer, ForeignKey('customers.id'),nullable=False)
-    liked_by = relationship("User", backref="liked_by",lazy="selectin", secondary=user_item)
+    liked_by = relationship("User", backref="items.liked_by",lazy="selectin", secondary=user_item)
     def __str__(self):
         return f"{self.name}"
 class Category(Base):
     __tablename__ = 'categories'
     id = Column(Integer,primary_key=True)
     name = Column(String(255),nullable=False)
-    item =  relationship("Item", backref="item_category", lazy="selectin",secondary=item_category)
+    item =  relationship("Item", backref="categories.items", lazy="selectin",secondary=item_category)

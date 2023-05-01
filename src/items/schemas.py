@@ -19,6 +19,7 @@ class ItemCreate(BaseModel):
         orm_mode = True
 class Item(ItemCreate):
     id:int
+    is_active:bool
     liked_by:List[UserRead]
     class Config:
         orm_mode = True
