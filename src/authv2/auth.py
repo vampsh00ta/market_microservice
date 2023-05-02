@@ -12,7 +12,7 @@ from fastapi.encoders import jsonable_encoder
 from starlette.requests import Request
 from config import SECRET, JWT_LIFE
 from utils.database import get_async_session
-from src.authv2.schemas import Token, UserRead, CreateUser, User_Change_Email
+from src.authv2.schemas import Token, UserRead, CreateUser, User_Change_Email, AnonymousUserRead
 from src.authv2.models import User
 
 # oauth_schema = CustomOAuth2PasswordBearer(tokenUrl = '/auth/sign-in/')
@@ -20,13 +20,13 @@ from src.authv2.models import User
 async def get_current_user(request:Request)->UserRead:
     data = AuthService.validate(request)
     return data
-async def get_current_user_or_pass(request:Request)->UserRead:
+async def get_current_user_or_pass(request:Request)->Union[UserRead,AnonymousUserRead]:
     try:
         data = AuthService.validate(request)
     except:
-        data = UserRead(
+        data = AnonymousUserRead(
             id = -1,
-            name = 'UnknownUser'
+            username = 'AnonymousUser'
 
         )
     return data
@@ -86,16 +86,18 @@ class AuthService:
         return self.create_token(user,response)
     @classmethod
     def verify_password(cls,raw_password:str,hash_password:str):
-        sc = scrypt.verify(raw_password,hash_password)
-        if sc:
-            return sc
-        return bcrypt.verify(raw_password,hash_password)
+        print( hash_password[0])
+        if hash_password[0] == '$':
+            return bcrypt.verify(raw_password,hash_password)
+        return scrypt.verify(raw_password,hash_password)
     @classmethod
     def hash_password(cls,password:str)->str:
         return scrypt.hash(password)
     @classmethod
     def validate(cls,request:Union[Request,str])->UserRead:
-        access_token = request.cookies.get('access_token')
+        access_token = request
+        if isinstance(request,Request):
+            access_token = request.cookies.get('access_token')
         exception = HTTPException(
             status_code=401,
             detail='Could not  validate data'
