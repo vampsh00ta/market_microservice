@@ -1,5 +1,7 @@
 
 from datetime import datetime, timedelta
+from typing import Union
+
 from fastapi import HTTPException,Response
 from fastapi import Depends
 from passlib.hash import scrypt,bcrypt
@@ -12,7 +14,6 @@ from config import SECRET, JWT_LIFE
 from utils.database import get_async_session
 from src.authv2.schemas import Token, UserRead, CreateUser, User_Change_Email
 from src.authv2.models import User
-
 
 # oauth_schema = CustomOAuth2PasswordBearer(tokenUrl = '/auth/sign-in/')
 
@@ -93,7 +94,7 @@ class AuthService:
     def hash_password(cls,password:str)->str:
         return scrypt.hash(password)
     @classmethod
-    def validate(cls,request:Request)->UserRead:
+    def validate(cls,request:Union[Request,str])->UserRead:
         access_token = request.cookies.get('access_token')
         exception = HTTPException(
             status_code=401,
